@@ -4,13 +4,14 @@ import { Repository } from 'typeorm';
 import { Receipt } from '../database/entities/receipts.entity'; // Ensure this path is correct
 import { CreateReceiptDto } from './dto/create-receipt.dto';
 import { UpdateReceiptDto } from './dto/update-receipt.dto';
-
+import { NotificationsService } from 'src/notifications/notifications.service';
 @Injectable()
 export class ReceiptsService {
   constructor(
     // We "Inject" the repository to use TypeORM's built-in methods (save, find, remove)
     @InjectRepository(Receipt)
     private readonly receiptRepo: Repository<Receipt>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Get all receipts, ordered by date
@@ -25,16 +26,8 @@ export class ReceiptsService {
     return receipt;
   }
 
-  // // Convert DTO data into an Entity and save it to Postgres
-  // async create(dto: CreateReceiptDto) {
-  //   const receipt = this.receiptRepo.create({
-  //     issuedAt: new Date(dto.issuedAt),
-  //     name: dto.name,
-  //     price: dto.price,
-  //   });
-  //   return this.receiptRepo.save(receipt);
-  // }
-async create(dto: CreateReceiptDto) {
+  // Convert DTO data into an Entity and save it to Postgres
+  async create(dto: CreateReceiptDto) {
     // 1. Create the entity instance
     const receipt = this.receiptRepo.create({
       issuedAt: new Date(dto.issuedAt),
@@ -44,9 +37,12 @@ async create(dto: CreateReceiptDto) {
 
     // 2. Save to PostgreSQL
     const savedReceipt = await this.receiptRepo.save(receipt);
+      this.notifications.notify('receipt_created', {
+      receiptId: savedReceipt.receiptId,
+      price: savedReceipt.price,
+    });
 
-    // 3. STEP 3 TASK: Improved RabbitMQ Payload simulation
-    // This part shows the teacher you understand Event-Driven Architecture
+    // Improved RabbitMQ Payload simulation
     const eventPayload = {
       pattern: 'receipt_created', // The "topic" or "routing key"
       data: {
@@ -62,8 +58,6 @@ async create(dto: CreateReceiptDto) {
 
     return savedReceipt;
   }
-
-
 
   // Find the receipt first, then update only the fields provided
   async update(receiptId: string, dto: UpdateReceiptDto) {

@@ -16,7 +16,6 @@ export class ReceiptsController {
     return this.receiptsService.findAll();
   }
 
-  // Task: Get a single receipt by ID
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.receiptsService.findOne(id);
@@ -27,7 +26,7 @@ export class ReceiptsController {
     return this.receiptsService.create(dto);
   }
 
-  // Task: Update a receipt (This fixes your 404 error)
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateReceiptDto) {
     return this.receiptsService.update(id, dto);
