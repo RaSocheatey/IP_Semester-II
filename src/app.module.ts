@@ -7,6 +7,11 @@ import { ConfigModule } from '@nestjs/config';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrdersModule } from './orders/orders.module';
 import { CoreModule } from './core/core.module';
+
+import { GraphQLModule } from '@nestjs/graphql';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { join } from 'path';
+import { GraphqlModule } from './graphql/graphql.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -24,6 +29,15 @@ import { CoreModule } from './core/core.module';
     NotificationsModule,
     OrdersModule,
     CoreModule,
+    GraphqlModule,
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      // ✅ We will switch between schema-first and code-first later
+      //typePaths: [join(process.cwd(), 'src/graphql/schema/*.graphql')], // schema-first
+      autoSchemaFile: join(process.cwd(), 'src/graphql/schema.gql'), // code-first (later)
+
+      playground: true,
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
