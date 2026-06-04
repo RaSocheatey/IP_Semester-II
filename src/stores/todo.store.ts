@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { apolloClient } from '../apollo/client'
 import { GET_TODOS, ADD_TODO, TOGGLE_TODO, DELETE_TODO, TODOS_SUB } from '../graphql/todos'
 
@@ -14,6 +14,9 @@ export const useTodoStore = defineStore('todo', () => {
   const todos = ref<Todo[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+
+  const activeTodos = computed(() => todos.value.filter(t => !t.is_done))
+  const doneTodos = computed(() => todos.value.filter(t => t.is_done))
 
   // 1. Read: Fetch all todos
   async function fetchTodos() {
@@ -82,6 +85,8 @@ export const useTodoStore = defineStore('todo', () => {
 
   return {
     todos,
+    activeTodos,
+    doneTodos,
     loading,
     error,
     fetchTodos,

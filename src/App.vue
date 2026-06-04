@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useTodoStore } from "./stores/todo.store";
 
 // Connect to our Pinia store
@@ -7,13 +7,23 @@ const store = useTodoStore();
 
 // State for the new to-do input field
 const newTodoTitle = ref("");
+let stopRealtime: null | (() => void) = null; // This will hold the function to stop real-time updates
+
+//  LOCAL FILTER STATE
+type FilterType = "all" | "active" | "done";
+const filter = ref<FilterType>("all");
+
+//  COMPUTED TO DETERMINE WHICH LIST TO SHOW
+const displayedTodos = computed(() => {
+  if (filter.value === "active") return store.activeTodos;
+  if (filter.value === "done") return store.doneTodos;
+  return store.todos;
+});
 
 // Fetch the to-dos from Hasura as soon as the app loads
 onMounted(() => {
   store.fetchTodos();
-
-  // Optional: Uncomment the next line to enable live real-time updates!
-  // store.startRealtime()
+  stopRealtime = store.startRealtime();
 });
 
 // Function to handle adding a task
@@ -28,7 +38,6 @@ const handleAdd = async () => {
   <main class="container">
     <h1>📝 My Vue + Hasura To-Do's</h1>
 
-    <!-- Input section to add new tasks -->
     <div class="add-todo">
       <input
         v-model="newTodoTitle"
@@ -39,15 +48,28 @@ const handleAdd = async () => {
       <button @click="handleAdd" :disabled="store.loading">Add Task</button>
     </div>
 
-    <!-- Loading and Error messages -->
+    <div class="tabs">
+      <button :class="{ active: filter === 'all' }" @click="filter = 'all'">
+        All ({{ store.todos.length }})
+      </button>
+      <button
+        :class="{ active: filter === 'active' }"
+        @click="filter = 'active'"
+      >
+        Active ({{ store.activeTodos.length }})
+      </button>
+      <button :class="{ active: filter === 'done' }" @click="filter = 'done'">
+        Done ({{ store.doneTodos.length }})
+      </button>
+    </div>
+
     <p v-if="store.loading && store.todos.length === 0" class="status">
       Loading tasks...
     </p>
     <p v-else-if="store.error" class="error">{{ store.error }}</p>
 
-    <!-- The actual list of tasks -->
     <ul class="todo-list" v-else>
-      <li v-for="todo in store.todos" :key="todo.id" class="todo-item">
+      <li v-for="todo in displayedTodos" :key="todo.id" class="todo-item">
         <label class="todo-label">
           <input
             type="checkbox"
@@ -61,9 +83,8 @@ const handleAdd = async () => {
         </button>
       </li>
 
-      <!-- Show this if the list is completely empty -->
-      <li v-if="store.todos.length === 0" class="empty-state">
-        No tasks yet! Add one above.
+      <li v-if="displayedTodos.length === 0" class="empty-state">
+        No tasks in this view!
       </li>
     </ul>
   </main>
@@ -120,6 +141,36 @@ h1 {
 
 .add-todo button:hover {
   background: #33a06f;
+}
+
+/* TAB STYLES */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.tabs button {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.2s ease-in-out;
+}
+
+.tabs button:hover {
+  background: #f3f4f6;
+}
+
+.tabs button.active {
+  background: #42b883;
+  color: white;
+  border-color: #42b883;
+  font-weight: bold;
 }
 
 .todo-list {
